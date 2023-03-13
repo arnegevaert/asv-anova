@@ -9,6 +9,7 @@ from pddshapley.sampling.conditioning_method import ConditioningMethod
 from pddshapley.signature import FeatureSubset
 from numpy import typing as npt
 from tqdm import tqdm
+from joblib import Parallel
 
 
 def _random_linear_extension(partial_order: List[List[int]],
@@ -34,10 +35,12 @@ def _random_linear_extension(partial_order: List[List[int]],
 class ASVExplainer:
     def __init__(self, model: Callable[[npt.NDArray], npt.NDArray],
                  conditioning_method: ConditioningMethod,
-                 num_outputs: int) -> None:
+                 num_outputs: int,
+                 memo=True) -> None:
         self.model = model
         self.conditioning_method = conditioning_method
         self.num_outputs = num_outputs
+        self.memo = memo
 
     def _explain_row(self, row: npt.NDArray, partial_order: List[List[int]],
                      incomparables: List[int], num_permutations: int = 100,
@@ -54,19 +57,30 @@ class ASVExplainer:
                 row_before = before.get_columns(row.reshape(1, -1)).reshape(-1)
                 row_after = after.get_columns(row.reshape(1, -1)).reshape(-1)
 
-                if FeatureSubset(*before) not in memo.keys():
-                    memo[FeatureSubset(*before)] = np.average(
+                if self.memo:
+                    if FeatureSubset(*before) not in memo.keys():
+                        memo[FeatureSubset(*before)] = np.average(
+                            self.conditioning_method.conditional_expectation(
+                            FeatureSubset(*before), row_before, self.model,
+                            num_samples=num_samples), axis=0)
+                    if FeatureSubset(*after) not in memo.keys():
+                        memo[FeatureSubset(*after)] = np.average(
+                            self.conditioning_method.conditional_expectation(
+                            FeatureSubset(*after), row_after, self.model,
+                            num_samples=num_samples), axis=0)
+                    marginal_contribution = memo[FeatureSubset(*after)] - memo[FeatureSubset(*before)]
+                else:
+                    avg_before = np.average(
                         self.conditioning_method.conditional_expectation(
                             FeatureSubset(*before), row_before, self.model,
                             num_samples=num_samples),
                         axis=0)
-                if FeatureSubset(*after) not in memo.keys():
-                    memo[FeatureSubset(*after)] = np.average(
+                    avg_after = np.average(
                         self.conditioning_method.conditional_expectation(
                             FeatureSubset(*after), row_after, self.model,
                             num_samples=num_samples),
                         axis=0)
-                marginal_contribution = memo[FeatureSubset(*after)] - memo[FeatureSubset(*before)]
+                    marginal_contribution = avg_after - avg_before
                 contributions[feature, ...] += marginal_contribution
         return contributions / num_permutations
 
@@ -76,6 +90,7 @@ class ASVExplainer:
 
         if partial_order is None:
             partial_order = [list(range(data.shape[1]))]
+
         incomparables = np.ones(data.shape[1])
         for group in partial_order:
             for i in group:
