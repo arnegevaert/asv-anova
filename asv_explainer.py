@@ -9,7 +9,7 @@ from pddshapley.sampling.conditioning_method import ConditioningMethod
 from pddshapley.signature import FeatureSubset
 from numpy import typing as npt
 from tqdm import tqdm
-from joblib import Parallel
+from joblib import Parallel, delayed
 
 
 def _random_linear_extension(partial_order: List[List[int]],
@@ -35,57 +35,46 @@ def _random_linear_extension(partial_order: List[List[int]],
 class ASVExplainer:
     def __init__(self, model: Callable[[npt.NDArray], npt.NDArray],
                  conditioning_method: ConditioningMethod,
-                 num_outputs: int,
-                 memo=True) -> None:
+                 num_outputs: int) -> None:
         self.model = model
         self.conditioning_method = conditioning_method
         self.num_outputs = num_outputs
-        self.memo = memo
 
     def _explain_row(self, row: npt.NDArray, partial_order: List[List[int]],
-                     incomparables: List[int], num_permutations: int = 100,
-                     num_samples: int = 100):
+                     incomparables: List[int], max_n_permutations: int):
         assert len(row.shape) == 1, "Row must be a 1D array"
 
-        memo: Dict[FeatureSubset, npt.NDArray] = {}
         contributions = np.zeros((row.shape[0], self.num_outputs))
-        for _ in range(num_permutations):
+        running_avg = np.zeros_like(contributions)
+        consecutive_close = 0
+        global_expectation = np.average(
+                self.conditioning_method.conditional_expectation(
+                    FeatureSubset(), np.array([]), self.model),
+                axis=0)
+        for p in range(max_n_permutations):
             linear_extension = _random_linear_extension(partial_order, row.shape[0], incomparables)
+            avg_before = global_expectation
             for i, feature in enumerate(linear_extension):
-                before = FeatureSubset(*linear_extension[:i])
                 after = FeatureSubset(*linear_extension[:i + 1])
-                row_before = before.get_columns(row.reshape(1, -1)).reshape(-1)
                 row_after = after.get_columns(row.reshape(1, -1)).reshape(-1)
 
-                if self.memo:
-                    if FeatureSubset(*before) not in memo.keys():
-                        memo[FeatureSubset(*before)] = np.average(
-                            self.conditioning_method.conditional_expectation(
-                            FeatureSubset(*before), row_before, self.model,
-                            num_samples=num_samples), axis=0)
-                    if FeatureSubset(*after) not in memo.keys():
-                        memo[FeatureSubset(*after)] = np.average(
-                            self.conditioning_method.conditional_expectation(
-                            FeatureSubset(*after), row_after, self.model,
-                            num_samples=num_samples), axis=0)
-                    marginal_contribution = memo[FeatureSubset(*after)] - memo[FeatureSubset(*before)]
-                else:
-                    avg_before = np.average(
+                avg_after = np.average(
                         self.conditioning_method.conditional_expectation(
-                            FeatureSubset(*before), row_before, self.model,
-                            num_samples=num_samples),
+                            FeatureSubset(*after), row_after, self.model),
                         axis=0)
-                    avg_after = np.average(
-                        self.conditioning_method.conditional_expectation(
-                            FeatureSubset(*after), row_after, self.model,
-                            num_samples=num_samples),
-                        axis=0)
-                    marginal_contribution = avg_after - avg_before
-                contributions[feature, ...] += marginal_contribution
-        return contributions / num_permutations
+                contributions[feature, ...] += avg_after - avg_before
+                avg_before = avg_after
+            prev_running_avg = running_avg.copy()
+            running_avg = contributions / (p + 1)
+            if np.allclose(prev_running_avg, running_avg, atol=1e-4, rtol=1e-3):
+                consecutive_close += 1
+            else:
+                consecutive_close = 0
+            if consecutive_close == 10:
+                return running_avg
+        return contributions / max_n_permutations
 
-    def explain(self, data: npt.NDArray, num_permutations: int = 100,
-                num_samples: int = 100,
+    def explain(self, data: npt.NDArray, max_n_permutations: int,
                 partial_order: List[List[int]] = None):
 
         if partial_order is None:
@@ -96,8 +85,9 @@ class ASVExplainer:
             for i in group:
                 incomparables[i] = 0
 
-        return np.array([self._explain_row(row, partial_order,
-                                           np.where(incomparables == 1)[0], 
-                                           num_permutations, num_samples)
-                         for row in tqdm(data)])
-            
+        res = Parallel(n_jobs=-1)(
+            delayed(self._explain_row)(row, partial_order, 
+                                       np.where(incomparables == 1)[0],
+                                       max_n_permutations)
+                                       for row in tqdm(data))
+        return np.array(res)

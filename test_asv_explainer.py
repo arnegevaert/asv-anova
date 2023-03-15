@@ -30,5 +30,5 @@ if __name__ == "__main__":
 
     # Compute ASV-SHAP values
     asv_explainer = ASVExplainer(model, IndependentConditioningMethod(X_train), 1)
-    asv_values = asv_explainer.explain(X_test, num_permutations=num_permutations)
+    asv_values = asv_explainer.explain(X_test, max_n_permutations=num_permutations)
     eval.print_metrics(asv_values, true_values, "ASV", "Ground truth")
