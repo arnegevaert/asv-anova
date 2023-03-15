@@ -1,0 +1,10 @@
+name: asymmetric-anova
+channels:
+  - defaults
+dependencies:
+  - pip
+  - mypy
+  - black
+  - shap
+  - ipykernel
+  - matplotlib
