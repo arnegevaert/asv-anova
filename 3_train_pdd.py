@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dataset", type=str, default="adult")
     parser.add_argument("-o", "--output-dir", type=str, default="data")
-    parser.add_argument("-s", "--max-size", type=int, default=3)
+    parser.add_argument("-s", "--max-size", type=int, default=4)
     args = parser.parse_args()
 
     data_dir = os.path.join(args.output_dir, args.dataset)

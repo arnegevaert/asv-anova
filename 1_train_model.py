@@ -38,7 +38,7 @@ def train_model(dataset):
         reg.fit(X_train.values, y_train)
         print(f"Train R2: {r2_score(y_train, reg.predict(X_train.values)):.3f}")
         print(f"Test R2: {r2_score(y_test, reg.predict(X_test.values)):.3f}")
-        return clf, X_train, X_test, y_train, y_test
+        return reg, X_train, X_test, y_train, y_test
 
 
 if __name__ == "__main__":
