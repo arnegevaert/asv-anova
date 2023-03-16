@@ -27,8 +27,16 @@ def sample_asv(model, ds_type, n_outputs, X_background, X_test, partial_order):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dataset", type=str, default="adult")
-    parser.add_argument("-o", "--output-dir", type=str, default="data")
+    parser.add_argument("-d", "--dataset", type=str, default="adult",
+                        choices=DATASETS.keys(), help="Dataset to use.")
+    parser.add_argument("-o", "--output-dir", type=str, default="data",
+                        help="Directory to store the results in. This should"
+                        "be the same as the output directory in 1_train_model.py.")
+    parser.add_argument("-r", "--range", action="store_true",
+                        help="If set, a range of features from 0 up to half"
+                        "the number of features is used as predecessors."
+                        "Otherwise, only symmetric Shapley values and ASVs with"
+                        "half the features as predecessors are sampled.")
     args = parser.parse_args()
 
     data_dir = os.path.join(args.output_dir, args.dataset)
@@ -40,17 +48,38 @@ if __name__ == "__main__":
     background_set = joblib.load(os.path.join(data_dir, "background_set.pkl"))
     exp_set = joblib.load(os.path.join(data_dir, "exp_set.pkl"))
 
-    for i in range(background_set.shape[1] // 2):
-        print(f"{i}/{background_set.shape[1] // 2}...")
-        if i == 0:
-            partial_order = None
-        else:
-            all_columns = list(range(background_set.shape[1]))
-            partial_order = [all_columns[:i], all_columns[i:]]
+    if args.range:
+        for i in range(background_set.shape[1] // 2):
+            print(f"{i}/{background_set.shape[1] // 2}...")
+            if i == 0:
+                partial_order = None
+            else:
+                all_columns = list(range(background_set.shape[1]))
+                partial_order = [all_columns[:i], all_columns[i:]]
 
+            values, runtime = sample_asv(model, DATASETS[args.dataset]["type"],
+                                        DATASETS[args.dataset]["n_outputs"],
+                                        background_set, exp_set, partial_order)
+            joblib.dump(values, os.path.join(result_dir, f"values_{i}.pkl"))
+            with open(os.path.join(result_dir, f"meta_{i}.json"), "w") as f:
+                json.dump({"runtime": runtime, "partial_order": partial_order}, f)
+    else:
+        # Sample symmetric Shapley values
         values, runtime = sample_asv(model, DATASETS[args.dataset]["type"],
-                                     DATASETS[args.dataset]["n_outputs"],
+                                    DATASETS[args.dataset]["n_outputs"],
+                                    background_set, exp_set, None)
+        joblib.dump(values, os.path.join(result_dir, "values_0.pkl"))
+        with open(os.path.join(result_dir, f"meta_0.json"), "w") as f:
+            json.dump({"runtime": runtime, "partial_order": None}, f)
+        
+        # Sample ASVs with half the features as predecessors
+        all_columns = list(range(background_set.shape[1]))
+        half = background_set.shape[1] // 2
+        partial_order = [all_columns[:half],
+                        all_columns[half:]]
+        values, runtime = sample_asv(model, DATASETS[args.dataset]["type"],
+                                    DATASETS[args.dataset]["n_outputs"],
                                     background_set, exp_set, partial_order)
-        joblib.dump(values, os.path.join(result_dir, f"values_{i}.pkl"))
-        with open(os.path.join(result_dir, f"meta_{i}.json"), "w") as f:
+        joblib.dump(values, os.path.join(result_dir, f"values_{half}.pkl"))
+        with open(os.path.join(result_dir, f"meta_{half}.json"), "w") as f:
             json.dump({"runtime": runtime, "partial_order": partial_order}, f)

@@ -6,4 +6,5 @@ DATASETS = {
     "satimage": {"id": 182, "type": "classification", "n_outputs": 6},
     "higgs": {"id": 23512, "type": "classification", "n_outputs": 2},
     "ionosphere": {"id": 59, "type": "classification", "n_outputs": 2},
+    "superconduct": {"id": 44006, "type": "regression", "n_outputs": 1},
 }
