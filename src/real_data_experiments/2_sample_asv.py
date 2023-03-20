@@ -4,6 +4,9 @@ It does this for varying partial orders: for i = 0, ..., d//2, we sample ASV
 where the first i features should precede the other d-i features.
 """
 import os
+import sys
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
 from asv_explainer import ASVExplainer
 from pddshapley.sampling import IndependentConditioningMethod
 from time import time

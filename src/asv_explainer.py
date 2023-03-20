@@ -19,8 +19,8 @@ def _random_linear_extension(partial_order: List[List[int]],
     shuffled_indices = np.arange(num_features)
     np.random.shuffle(shuffled_indices)
 
-    incomparable_indices = shuffled_indices[:len(incomparables)]
-    comparable_indices = shuffled_indices[len(incomparables):]
+    incomparable_indices = sorted(shuffled_indices[:len(incomparables)])
+    comparable_indices = sorted(shuffled_indices[len(incomparables):])
 
     result[incomparable_indices] = np.random.permutation(incomparables)
 
