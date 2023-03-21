@@ -24,8 +24,8 @@ if __name__ == "__main__":
         os.makedirs(result_dir)
 
     columns = exp_set.columns
-    for i in range(len(columns) // 2):
-        print(f"{i}/{len(columns) // 2}...")
+    for i in range(len(columns) // 2 + 1):
+        print(f"{i}/{len(columns) // 2 + 1}...")
         if i == 0:
             partial_order = None
         else:

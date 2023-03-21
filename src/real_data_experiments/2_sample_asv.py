@@ -52,8 +52,8 @@ if __name__ == "__main__":
     exp_set = joblib.load(os.path.join(data_dir, "exp_set.pkl"))
 
     if args.range:
-        for i in range(background_set.shape[1] // 2):
-            print(f"{i}/{background_set.shape[1] // 2}...")
+        for i in range(background_set.shape[1] // 2 + 1):
+            print(f"{i}/{background_set.shape[1] // 2 + 1}...")
             if i == 0:
                 partial_order = None
             else:
