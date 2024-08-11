@@ -13,13 +13,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dataset", type=str, default="adult")
     parser.add_argument("-o", "--output-dir", type=str, default="data")
+    parser.add_argument("-s", "--max-size", type=int, default=4)
     args = parser.parse_args()
 
     data_dir = os.path.join(args.output_dir, args.dataset)
-    pdd = joblib.load(os.path.join(data_dir, "pdd.pkl"))
+    pdd = joblib.load(os.path.join(data_dir, f"pdd-{args.max_size}.pkl"))
     exp_set = joblib.load(os.path.join(data_dir, "exp_set.pkl"))
     
-    result_dir = os.path.join(data_dir, "results", "pdd")
+    result_dir = os.path.join(data_dir, "results", f"pdd-{args.max_size}")
     if not os.path.isdir(result_dir):
         os.makedirs(result_dir)
 

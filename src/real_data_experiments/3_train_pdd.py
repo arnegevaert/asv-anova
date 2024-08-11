@@ -36,6 +36,6 @@ if __name__ == "__main__":
     pdd.fit(background_set, max_size=args.max_size)
     end_t = time.time()
 
-    joblib.dump(pdd, os.path.join(data_dir, "pdd.pkl"))
-    with open(os.path.join(data_dir, "pdd_meta.json"), "w") as f:
+    joblib.dump(pdd, os.path.join(data_dir, f"pdd-{args.max_size}.pkl"))
+    with open(os.path.join(data_dir, f"pdd-{args.max_size}_meta.json"), "w") as f:
         json.dump({"runtime": end_t - start_t}, f)
