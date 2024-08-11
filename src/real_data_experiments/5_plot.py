@@ -163,7 +163,7 @@ def plot_inference_speed(data_dir, datasets, output_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data-dir", type=str, default="data/maxsize_3")
+    parser.add_argument("-d", "--data-dir", type=str, default="data/bugfixed")
     parser.add_argument("-o", "--output-dir", type=str, default="plots")
     args = parser.parse_args()
 

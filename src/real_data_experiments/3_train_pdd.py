@@ -33,7 +33,7 @@ if __name__ == "__main__":
         estimator_type="tree",
     )
     start_t = time.time()
-    pdd.fit(background_set, max_size=args.max_size)
+    pdd.fit(background_set, max_size=args.max_size, n_jobs=-1)
     end_t = time.time()
 
     joblib.dump(pdd, os.path.join(data_dir, f"pdd-{args.max_size}.pkl"))

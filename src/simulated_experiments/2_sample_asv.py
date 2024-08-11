@@ -43,7 +43,7 @@ if __name__ == "__main__":
     # Resulting ASVs for gender show the influence of the gender feature *after*
     # the department feature is known.
     partial_order = [[2], [0]]
-    X_test = test_data[["x1", "x2", "x3"]].sample(1000)
+    X_test = test_data[["x1", "x2", "x3"]]
     meta = {}
 
     # Compute ASVs for fair labels
